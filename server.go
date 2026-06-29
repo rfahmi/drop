@@ -3,6 +3,7 @@ package main
 import (
 	"embed"
 	"encoding/json"
+	"fmt"
 	"io"
 	"log"
 	"net/http"
@@ -70,32 +71,65 @@ func (s *Server) handleUploadFile(w http.ResponseWriter, r *http.Request) {
 	}
 
 	filename := r.URL.Query().Get("filename")
-	if filename == "" {
-		// try to get it from multipart
-		err := r.ParseMultipartForm(32 << 20)
-		if err == nil {
-			file, header, err := r.FormFile("file")
-			if err == nil {
-				defer file.Close()
-				err = s.R2Client.UploadFile(r.Context(), header.Filename, file)
-				if err != nil {
-					http.Error(w, err.Error(), http.StatusInternalServerError)
-					return
-				}
-				w.WriteHeader(http.StatusOK)
-				return
-			}
+	if filename != "" {
+		// Buffer to a temp file to avoid AWS SDK OOM buffering for unseekable streams
+		tmpFile, err := os.CreateTemp("", "upload-*.bin")
+		if err != nil {
+			http.Error(w, fmt.Sprintf("Failed to create temp file: %v", err), http.StatusInternalServerError)
+			return
 		}
-		http.Error(w, "filename is required either via query param ?filename=... or multipart form", http.StatusBadRequest)
+		defer os.Remove(tmpFile.Name())
+		defer tmpFile.Close()
+
+		if _, err := io.Copy(tmpFile, r.Body); err != nil {
+			http.Error(w, fmt.Sprintf("Failed to write to temp file: %v", err), http.StatusInternalServerError)
+			return
+		}
+
+		// Seek back to start for the SDK
+		if _, err := tmpFile.Seek(0, io.SeekStart); err != nil {
+			http.Error(w, fmt.Sprintf("Failed to seek temp file: %v", err), http.StatusInternalServerError)
+			return
+		}
+
+		stat, err := tmpFile.Stat()
+		if err != nil {
+			http.Error(w, fmt.Sprintf("Failed to stat temp file: %v", err), http.StatusInternalServerError)
+			return
+		}
+		size := stat.Size()
+
+		err = s.R2Client.UploadFile(r.Context(), filename, tmpFile, &size, r.Header.Get("Content-Type"))
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+		w.WriteHeader(http.StatusOK)
 		return
 	}
 
-	err := s.R2Client.UploadFile(r.Context(), filename, r.Body)
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
+	// fallback for multipart
+	err := r.ParseMultipartForm(32 << 20)
+	if err == nil {
+		file, header, err := r.FormFile("file")
+		if err == nil {
+			defer file.Close()
+			size := header.Size
+			contentType := header.Header.Get("Content-Type")
+			err = s.R2Client.UploadFile(r.Context(), header.Filename, file, &size, contentType)
+			if err != nil {
+				http.Error(w, err.Error(), http.StatusInternalServerError)
+				return
+			}
+			w.WriteHeader(http.StatusOK)
+			return
+		} else {
+			log.Printf("FormFile error: %v\n", err)
+		}
+	} else {
+		log.Printf("ParseMultipartForm error: %v\n", err)
 	}
-	w.WriteHeader(http.StatusOK)
+	http.Error(w, "filename is required either via query param ?filename=... or multipart form", http.StatusBadRequest)
 }
 
 func (s *Server) handleFile(w http.ResponseWriter, r *http.Request) {

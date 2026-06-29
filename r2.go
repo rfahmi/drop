@@ -44,7 +44,9 @@ func NewR2Client(ctx context.Context) (*R2Client, error) {
 		return nil, err
 	}
 
-	client := s3.NewFromConfig(cfg)
+	client := s3.NewFromConfig(cfg, func(o *s3.Options) {
+		o.UsePathStyle = true
+	})
 
 	return &R2Client{
 		Client:     client,
@@ -80,12 +82,17 @@ func (r *R2Client) ListFiles(ctx context.Context) ([]FileInfo, error) {
 	return files, nil
 }
 
-func (r *R2Client) UploadFile(ctx context.Context, key string, body io.Reader) error {
-	_, err := r.Client.PutObject(ctx, &s3.PutObjectInput{
-		Bucket: &r.BucketName,
-		Key:    &key,
-		Body:   body,
-	})
+func (r *R2Client) UploadFile(ctx context.Context, key string, body io.Reader, size *int64, contentType string) error {
+	input := &s3.PutObjectInput{
+		Bucket:        &r.BucketName,
+		Key:           &key,
+		Body:          body,
+		ContentLength: size,
+	}
+	if contentType != "" {
+		input.ContentType = &contentType
+	}
+	_, err := r.Client.PutObject(ctx, input)
 	return err
 }
 

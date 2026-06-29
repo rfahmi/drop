@@ -603,13 +603,15 @@
             try {
                 loader.style.display = 'block';
                 const newContent = document.getElementById('previewContent').value;
-                const formData = new FormData();
-                formData.append('file', new File([newContent], currentPreviewFile.name, { type: "text/plain" }));
+                const file = new File([newContent], currentPreviewFile.name, { type: "text/plain" });
 
-                const res = await fetch('/api/files', {
+                const res = await fetch(`/api/files?filename=${encodeURIComponent(currentPreviewFile.name)}`, {
                     method: 'POST',
-                    headers: { 'Authorization': 'Bearer ' + token },
-                    body: formData
+                    headers: { 
+                        'Authorization': 'Bearer ' + token,
+                        'Content-Type': 'text/plain'
+                    },
+                    body: file
                 });
 
                 if (res.ok) {
@@ -763,14 +765,14 @@
         }
 
         async function uploadFile(file) {
-            const formData = new FormData();
-            formData.append('file', file);
-
             try {
-                const res = await fetch('/api/files', {
+                const res = await fetch(`/api/files?filename=${encodeURIComponent(file.name)}`, {
                     method: 'POST',
-                    headers: { 'Authorization': 'Bearer ' + token },
-                    body: formData
+                    headers: { 
+                        'Authorization': 'Bearer ' + token,
+                        'Content-Type': file.type || 'application/octet-stream'
+                    },
+                    body: file
                 });
                 if (!res.ok) {
                     const text = await res.text();
@@ -790,14 +792,15 @@
                 if (fileName) {
                     try {
                         loader.style.display = 'block';
-                        const formData = new FormData();
-                        // Create an empty file
-                        formData.append('file', new File([""], fileName, { type: "text/plain" }));
+                        const file = new File([""], fileName, { type: "text/plain" });
 
-                        const res = await fetch('/api/files', {
+                        const res = await fetch(`/api/files?filename=${encodeURIComponent(fileName)}`, {
                             method: 'POST',
-                            headers: { 'Authorization': 'Bearer ' + token },
-                            body: formData
+                            headers: { 
+                                'Authorization': 'Bearer ' + token,
+                                'Content-Type': 'text/plain'
+                            },
+                            body: file
                         });
 
                         if (res.ok) {
