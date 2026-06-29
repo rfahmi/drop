@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Drop - Sci-Fi Terminal</title>
+    <title>Drop</title>
     <style>
         :root {
             --bg-color: #0b1a1c;
@@ -472,11 +472,15 @@
                         <div class="file-section-header">
                             <span id="previewTitle">PREVIEW</span>
                             <div>
-                                <span style="cursor: pointer; color: var(--accent-color); margin-right: 15px;" onclick="savePreview()">[V] SAVE</span>
-                                <span style="cursor: pointer; color: var(--accent-color);" onclick="closePreview()">[X] CLOSE</span>
+                                <span style="cursor: pointer; color: var(--accent-color); margin-right: 15px;"
+                                    onclick="savePreview()">[V] SAVE</span>
+                                <span style="cursor: pointer; color: var(--accent-color);" onclick="closePreview()">[X]
+                                    CLOSE</span>
                             </div>
                         </div>
-                        <textarea id="previewContent" class="preview-content" style="background: transparent; border: none; color: inherit; resize: none; outline: none;" spellcheck="false"></textarea>
+                        <textarea id="previewContent" class="preview-content"
+                            style="background: transparent; border: none; color: inherit; resize: none; outline: none;"
+                            spellcheck="false"></textarea>
                     </div>
 
                     <div id="loader" class="loader"></div>
@@ -526,18 +530,18 @@
             menu.style.display = 'none';
             if (!contextFile) return;
             const file = contextFile;
-            
+
             if (action === 'delete') {
-                if(confirm(`DELETE ${file.name}?`)) {
+                if (confirm(`DELETE ${file.name}?`)) {
                     try {
                         loader.style.display = 'block';
                         const res = await fetch(`/api/files/${encodeURIComponent(file.name)}`, {
                             method: 'DELETE',
                             headers: { 'Authorization': 'Bearer ' + token }
                         });
-                        if(res.ok) loadFiles();
+                        if (res.ok) loadFiles();
                         else alert('DELETE FAILED');
-                    } catch(e) {
+                    } catch (e) {
                         alert('DELETE FAILED');
                     } finally {
                         loader.style.display = 'none';
@@ -552,9 +556,9 @@
                             method: 'PATCH',
                             headers: { 'Authorization': 'Bearer ' + token }
                         });
-                        if(res.ok) loadFiles();
+                        if (res.ok) loadFiles();
                         else alert('RENAME FAILED');
-                    } catch(e) {
+                    } catch (e) {
                         alert('RENAME FAILED');
                     } finally {
                         loader.style.display = 'none';
@@ -601,13 +605,13 @@
                 const newContent = document.getElementById('previewContent').value;
                 const formData = new FormData();
                 formData.append('file', new File([newContent], currentPreviewFile.name, { type: "text/plain" }));
-                
+
                 const res = await fetch('/api/files', {
                     method: 'POST',
                     headers: { 'Authorization': 'Bearer ' + token },
                     body: formData
                 });
-                
+
                 if (res.ok) {
                     alert('SAVED SUCCESSFULLY');
                     loadFiles();
@@ -701,7 +705,7 @@
                                 window.location.href = fileUrl;
                             }
                         };
-                        
+
                         el.oncontextmenu = (e) => showContextMenu(e, file);
 
                         fileList.appendChild(el);
@@ -789,13 +793,13 @@
                         const formData = new FormData();
                         // Create an empty file
                         formData.append('file', new File([""], fileName, { type: "text/plain" }));
-                        
+
                         const res = await fetch('/api/files', {
                             method: 'POST',
                             headers: { 'Authorization': 'Bearer ' + token },
                             body: formData
                         });
-                        
+
                         if (res.ok) {
                             loadFiles();
                         } else {
