@@ -1,61 +1,110 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Drop</title>
+    <title>Drop - Sci-Fi Terminal</title>
     <style>
         :root {
-            --bg-color: #f3f4f6;
-            --text-color: #1f2937;
-            --accent-color: #3b82f6;
-            --card-bg: rgba(255, 255, 255, 0.7);
-            --card-border: rgba(255, 255, 255, 0.5);
-            --hover-bg: rgba(59, 130, 246, 0.1);
-            --selected-bg: rgba(59, 130, 246, 0.2);
+            --bg-color: #0b1a1c;
+            /* Dark teal background */
+            --grid-color: rgba(61, 165, 153, 0.15);
+            /* Faint teal grid */
+            --text-color: #5e9e97;
+            /* Muted teal text */
+            --accent-color: #71cfc9;
+            /* Brighter teal for highlights */
+            --panel-bg: rgba(11, 26, 28, 0.8);
+            --border-color: rgba(94, 158, 151, 0.3);
+            --hover-bg: rgba(113, 207, 201, 0.1);
         }
 
-        @media (prefers-color-scheme: dark) {
-            :root {
-                --bg-color: #111827;
-                --text-color: #f9fafb;
-                --card-bg: rgba(31, 41, 55, 0.7);
-                --card-border: rgba(75, 85, 99, 0.5);
-                --hover-bg: rgba(59, 130, 246, 0.2);
-                --selected-bg: rgba(59, 130, 246, 0.4);
-            }
+        @font-face {
+            font-family: 'SciFiMono';
+            /* Standard monospace fallback */
+            src: local('Courier New'), local('Courier'), local('monospace');
         }
 
-        body, html {
+        body,
+        html {
             margin: 0;
             padding: 0;
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            font-family: 'Courier New', Courier, monospace;
             background-color: var(--bg-color);
             color: var(--text-color);
             height: 100vh;
+            overflow: hidden;
             display: flex;
             flex-direction: column;
-            overflow: hidden;
-            transition: background-color 0.3s ease;
         }
 
-        header {
-            padding: 20px 40px;
+        /* Grid Background */
+        .crt-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-image:
+                url("data:image/svg+xml,%3Csvg width='120' height='120' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M30.5 25.5 v11 M25.5 30.5 h11' stroke='rgba(61, 165, 153, 0.6)' stroke-width='1'/%3E%3C/svg%3E"),
+                linear-gradient(var(--grid-color) 1px, transparent 1px),
+                linear-gradient(90deg, var(--grid-color) 1px, transparent 1px);
+            background-size: 120px 120px, 30px 30px, 30px 30px;
+            background-position: top left, top left, top left;
+            pointer-events: none;
+            z-index: 0;
+            opacity: 0.3;
+        }
+
+        .screen-container {
+            position: relative;
+            z-index: 1;
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            border: 2px solid var(--border-color);
+            margin: 10px;
+            box-sizing: border-box;
+            background: radial-gradient(circle at center, rgba(0, 0, 0, 0) 0%, rgba(0, 0, 0, 0.4) 100%);
+        }
+
+        /* Top Bar */
+        .top-bar {
             display: flex;
             justify-content: space-between;
+            padding: 10px 20px;
+            border-bottom: 1px solid var(--border-color);
+            font-size: 12px;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+        }
+
+        .top-bar-left,
+        .top-bar-right,
+        .top-bar-center {
+            display: flex;
             align-items: center;
+            gap: 20px;
         }
 
-        header h1 {
-            margin: 0;
-            font-size: 24px;
-            font-weight: 600;
-            letter-spacing: -0.5px;
+        .highlight-box {
+            background-color: var(--text-color);
+            color: var(--bg-color);
+            padding: 2px 8px;
+            font-weight: bold;
         }
 
-        .container {
+        /* Main Content */
+        .main-content {
             flex: 1;
-            padding: 0 40px 40px;
+            display: flex;
+            position: relative;
+        }
+
+        /* Dropzone / Center Area */
+        .dropzone-container {
+            flex: 1;
             display: flex;
             flex-direction: column;
             position: relative;
@@ -63,120 +112,162 @@
 
         .dropzone {
             flex: 1;
-            background: var(--card-bg);
-            backdrop-filter: blur(10px);
-            -webkit-backdrop-filter: blur(10px);
-            border: 1px solid var(--card-border);
-            border-radius: 16px;
-            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+            position: relative;
             display: flex;
             flex-direction: column;
-            overflow: hidden;
-            position: relative;
+            background: transparent;
             transition: all 0.3s ease;
         }
 
         .dropzone.dragover {
-            border: 2px dashed var(--accent-color);
-            background: var(--hover-bg);
+            background: rgba(113, 207, 201, 0.05);
+            box-shadow: inset 0 0 20px var(--accent-color);
         }
 
-        .drag-overlay {
+        .bg-logo {
             position: absolute;
-            top: 0; left: 0; right: 0; bottom: 0;
-            background: rgba(59, 130, 246, 0.8);
-            color: white;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 400px;
+            height: 400px;
+            /* border: 2px solid var(--border-color); */
+            border-radius: 50%;
             display: flex;
+            flex-direction: column;
             justify-content: center;
             align-items: center;
-            font-size: 24px;
-            font-weight: bold;
-            opacity: 0;
+            opacity: 0.1;
             pointer-events: none;
-            transition: opacity 0.2s ease;
+            text-align: center;
+        }
+
+        .bg-logo h1 {
+            font-size: 32px;
+            margin: 0;
+            letter-spacing: 5px;
+        }
+
+        .preview-container {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            bottom: 20px;
+            right: 390px;
+            background: var(--panel-bg);
+            border: 1px solid var(--border-color);
+            backdrop-filter: blur(4px);
+            display: flex;
+            flex-direction: column;
             z-index: 10;
         }
 
-        .dropzone.dragover .drag-overlay {
-            opacity: 1;
+        .preview-content {
+            flex: 1;
+            padding: 15px;
+            overflow: auto;
+            margin: 0;
+            white-space: pre-wrap;
+            word-break: break-all;
+            font-family: inherit;
+            font-size: 11px;
+            line-height: 1.5;
+        }
+
+        /* File List Container */
+        .file-section {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            bottom: 20px;
+            width: 350px;
+            display: flex;
+            flex-direction: column;
+            border: 1px solid var(--border-color);
+            background: var(--panel-bg);
+            backdrop-filter: blur(4px);
+        }
+
+        .file-section-header {
+            background-color: var(--text-color);
+            color: var(--bg-color);
+            padding: 5px 10px;
+            font-size: 12px;
+            font-weight: bold;
+            display: flex;
+            justify-content: space-between;
         }
 
         .file-list {
             flex: 1;
             overflow-y: auto;
-            padding: 20px;
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-            gap: 20px;
-            align-content: start;
+            padding: 10px;
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
         }
 
         .file-item {
-            background: transparent;
-            border-radius: 12px;
-            padding: 16px;
+            display: grid;
+            grid-template-columns: 20px 1fr 60px;
+            gap: 10px;
+            padding: 4px 8px;
+            font-size: 11px;
             cursor: pointer;
-            transition: all 0.2s ease;
-            display: flex;
-            flex-direction: column;
+            border: 1px solid transparent;
             align-items: center;
-            text-align: center;
-            user-select: none;
         }
 
-        .file-item:hover {
-            background: var(--hover-bg);
-        }
-
+        .file-item:hover,
         .file-item.selected {
-            background: var(--selected-bg);
+            background: var(--hover-bg);
+            border-color: var(--border-color);
+            color: var(--accent-color);
         }
 
-        .file-icon {
-            width: 48px;
-            height: 48px;
-            margin-bottom: 12px;
-            fill: var(--text-color);
+        .file-item-icon {
+            width: 12px;
+            height: 12px;
+            background-color: currentColor;
+            clip-path: polygon(0 0, 8px 0, 12px 4px, 12px 12px, 0 12px);
         }
 
         .file-name {
-            font-size: 14px;
-            font-weight: 500;
-            word-break: break-all;
-            display: -webkit-box;
-            -webkit-line-clamp: 2;
-            -webkit-box-orient: vertical;
+            white-space: nowrap;
             overflow: hidden;
+            text-overflow: ellipsis;
         }
 
         .file-size {
-            font-size: 12px;
+            text-align: right;
             opacity: 0.7;
-            margin-top: 4px;
         }
 
-        .loader {
-            display: none;
-            position: absolute;
-            top: 50%; left: 50%;
-            transform: translate(-50%, -50%);
-            border: 3px solid rgba(255,255,255,0.3);
-            border-radius: 50%;
-            border-top: 3px solid var(--accent-color);
-            width: 40px; height: 40px;
-            animation: spin 1s linear infinite;
+        .f-key {
+            display: flex;
+            gap: 5px;
+            cursor: pointer;
         }
 
-        @keyframes spin {
-            0% { transform: translate(-50%, -50%) rotate(0deg); }
-            100% { transform: translate(-50%, -50%) rotate(360deg); }
+        .f-key:hover {
+            color: var(--accent-color);
         }
 
+        .f-key span:first-child {
+            background: var(--border-color);
+            color: var(--bg-color);
+            padding: 0 4px;
+            font-weight: bold;
+        }
+
+        /* Auth Modal */
         #authModal {
             position: fixed;
-            top: 0; left: 0; right: 0; bottom: 0;
-            background: rgba(0,0,0,0.5);
-            backdrop-filter: blur(5px);
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(11, 26, 28, 0.9);
             display: flex;
             justify-content: center;
             align-items: center;
@@ -184,68 +275,224 @@
         }
 
         .modal-content {
+            border: 2px solid var(--accent-color);
+            padding: 30px;
+            width: 350px;
             background: var(--bg-color);
-            padding: 32px;
-            border-radius: 16px;
-            width: 300px;
-            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+            box-shadow: 0 0 20px rgba(113, 207, 201, 0.2);
+            position: relative;
+        }
+
+        .modal-content::before {
+            content: '';
+            position: absolute;
+            top: -2px;
+            left: -2px;
+            width: 10px;
+            height: 10px;
+            border-top: 2px solid var(--accent-color);
+            border-left: 2px solid var(--accent-color);
+        }
+
+        .modal-content h2 {
+            margin-top: 0;
+            font-size: 16px;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            border-bottom: 1px solid var(--border-color);
+            padding-bottom: 10px;
         }
 
         .modal-content input {
             width: 100%;
             padding: 10px;
-            margin: 16px 0;
-            border: 1px solid var(--card-border);
-            border-radius: 8px;
-            background: var(--card-bg);
-            color: var(--text-color);
+            margin: 20px 0;
+            background: transparent;
+            border: 1px solid var(--border-color);
+            color: var(--accent-color);
+            font-family: inherit;
             box-sizing: border-box;
+            outline: none;
+        }
+
+        .modal-content input:focus {
+            border-color: var(--accent-color);
+            box-shadow: 0 0 5px rgba(113, 207, 201, 0.3);
         }
 
         .modal-content button {
             width: 100%;
             padding: 10px;
-            background: var(--accent-color);
-            color: white;
+            background: var(--text-color);
+            color: var(--bg-color);
             border: none;
-            border-radius: 8px;
+            font-family: inherit;
+            font-weight: bold;
             cursor: pointer;
-            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            transition: all 0.2s;
+        }
+
+        .modal-content button:hover {
+            background: var(--accent-color);
+            box-shadow: 0 0 10px rgba(113, 207, 201, 0.5);
         }
 
         .hidden {
             display: none !important;
         }
 
-        /* SVG icon */
-        .icon-svg {
-            width: 48px;
-            height: 48px;
+        /* Loader */
+        .loader {
+            display: none;
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 50px;
+            height: 50px;
+            border: 2px solid var(--border-color);
+            border-top: 2px solid var(--accent-color);
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% {
+                transform: translate(-50%, -50%) rotate(0deg);
+            }
+
+            100% {
+                transform: translate(-50%, -50%) rotate(360deg);
+            }
+        }
+
+        /* Custom scrollbar */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: rgba(0, 0, 0, 0.3);
+            border-left: 1px solid var(--border-color);
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: var(--border-color);
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: var(--text-color);
+        }
+
+        /* Scanline effect */
+        .scanlines {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: linear-gradient(to bottom, rgba(255, 255, 255, 0), rgba(255, 255, 255, 0) 50%, rgba(0, 0, 0, 0.1) 50%, rgba(0, 0, 0, 0.1));
+            background-size: 100% 4px;
+            pointer-events: none;
+            z-index: 50;
+        }
+
+        /* Context Menu */
+        .context-menu {
+            position: absolute;
+            background: var(--panel-bg);
+            border: 1px solid var(--accent-color);
+            padding: 5px 0;
+            display: none;
+            flex-direction: column;
+            z-index: 1000;
+            box-shadow: 0 0 10px rgba(113, 207, 201, 0.3);
+            min-width: 120px;
+            backdrop-filter: blur(4px);
+        }
+
+        .context-menu-item {
+            padding: 8px 15px;
+            font-size: 11px;
+            cursor: pointer;
             color: var(--text-color);
+        }
+
+        .context-menu-item:hover {
+            background: var(--hover-bg);
+            color: var(--accent-color);
         }
     </style>
 </head>
+
 <body>
+
+    <div class="crt-overlay"></div>
+    <div class="scanlines"></div>
+
+    <div id="contextMenu" class="context-menu">
+        <div class="context-menu-item" onclick="handleMenuAction('rename')">RENAME</div>
+        <div class="context-menu-item" onclick="handleMenuAction('delete')">DELETE</div>
+        <div class="context-menu-item" onclick="handleMenuAction('metadata')">METADATA</div>
+    </div>
 
     <div id="authModal" class="hidden">
         <div class="modal-content">
-            <h2>Authentication</h2>
-            <p>Please enter your access token.</p>
-            <input type="password" id="tokenInput" placeholder="Token" onkeypress="if(event.key === 'Enter') saveToken()">
-            <button onclick="saveToken()">Save</button>
+            <h2>AUTHENTICATION</h2>
+            <p>ENTER ACCESS TOKEN</p>
+            <input type="password" id="tokenInput" placeholder="> _" autocomplete="off"
+                onkeypress="if(event.key === 'Enter') saveToken()">
+            <button onclick="saveToken()">INITIALIZE</button>
         </div>
     </div>
 
-    <header>
-        <h1>Drop</h1>
-        <div style="font-size: 14px; opacity: 0.7;">Drag files anywhere to upload</div>
-    </header>
+    <div class="screen-container">
+        <!-- Top Bar -->
+        <div class="top-bar">
+            <div class="top-bar-left">
+                <div class="highlight-box">DROP</div>
+            </div>
+            <div class="top-bar-right">
+                <div class="f-key" style="cursor: pointer;" onclick="logout()"><span>ESC</span> <span>LOGOUT</span>
+                </div>
+            </div>
+        </div>
 
-    <div class="container">
-        <div id="dropzone" class="dropzone">
-            <div class="drag-overlay">Drop files to upload</div>
-            <div id="fileList" class="file-list"></div>
-            <div id="loader" class="loader"></div>
+        <!-- Main Content -->
+        <div class="main-content">
+            <!-- Dropzone -->
+            <div class="dropzone-container">
+                <div id="dropzone" class="dropzone">
+                    <div class="bg-logo" id="bgLogo">
+                        <!-- Future custom logo placeholder -->
+                    </div>
+
+                    <div id="previewContainer" class="preview-container hidden">
+                        <div class="file-section-header">
+                            <span id="previewTitle">PREVIEW</span>
+                            <div>
+                                <span style="cursor: pointer; color: var(--accent-color); margin-right: 15px;" onclick="savePreview()">[V] SAVE</span>
+                                <span style="cursor: pointer; color: var(--accent-color);" onclick="closePreview()">[X] CLOSE</span>
+                            </div>
+                        </div>
+                        <textarea id="previewContent" class="preview-content" style="background: transparent; border: none; color: inherit; resize: none; outline: none;" spellcheck="false"></textarea>
+                    </div>
+
+                    <div id="loader" class="loader"></div>
+
+                    <!-- File Section -->
+                    <div class="file-section">
+                        <div class="file-section-header">
+                            <span>FILES</span>
+                            <span id="fileCount">0 FILES</span>
+                        </div>
+                        <div id="fileList" class="file-list">
+                            <!-- Files will be injected here -->
+                        </div>
+                    </div>
+                </div>
+            </div>
         </div>
     </div>
 
@@ -255,8 +502,69 @@
         const loader = document.getElementById('loader');
         const authModal = document.getElementById('authModal');
         const tokenInput = document.getElementById('tokenInput');
+        const fileCountEl = document.getElementById('fileCount');
 
         let token = localStorage.getItem('authToken');
+        let contextFile = null;
+        let currentPreviewFile = null;
+
+        document.addEventListener('click', () => {
+            document.getElementById('contextMenu').style.display = 'none';
+        });
+
+        function showContextMenu(e, file) {
+            e.preventDefault();
+            contextFile = file;
+            const menu = document.getElementById('contextMenu');
+            menu.style.display = 'flex';
+            menu.style.left = e.pageX + 'px';
+            menu.style.top = e.pageY + 'px';
+        }
+
+        async function handleMenuAction(action) {
+            const menu = document.getElementById('contextMenu');
+            menu.style.display = 'none';
+            if (!contextFile) return;
+            const file = contextFile;
+            
+            if (action === 'delete') {
+                if(confirm(`DELETE ${file.name}?`)) {
+                    try {
+                        loader.style.display = 'block';
+                        const res = await fetch(`/api/files/${encodeURIComponent(file.name)}`, {
+                            method: 'DELETE',
+                            headers: { 'Authorization': 'Bearer ' + token }
+                        });
+                        if(res.ok) loadFiles();
+                        else alert('DELETE FAILED');
+                    } catch(e) {
+                        alert('DELETE FAILED');
+                    } finally {
+                        loader.style.display = 'none';
+                    }
+                }
+            } else if (action === 'rename') {
+                const newName = prompt('NEW NAME:', file.name);
+                if (newName && newName !== file.name) {
+                    try {
+                        loader.style.display = 'block';
+                        const res = await fetch(`/api/files/${encodeURIComponent(file.name)}?action=rename&newname=${encodeURIComponent(newName)}`, {
+                            method: 'PATCH',
+                            headers: { 'Authorization': 'Bearer ' + token }
+                        });
+                        if(res.ok) loadFiles();
+                        else alert('RENAME FAILED');
+                    } catch(e) {
+                        alert('RENAME FAILED');
+                    } finally {
+                        loader.style.display = 'none';
+                    }
+                }
+            } else if (action === 'metadata') {
+                const dateStr = file.last_modified ? new Date(file.last_modified).toLocaleString() : 'N/A';
+                alert(`FILE: ${file.name}\nSIZE: ${formatBytes(file.size)} (${file.size} B)\nMODIFIED: ${dateStr}`);
+            }
+        }
 
         if (!token) {
             authModal.classList.remove('hidden');
@@ -272,68 +580,137 @@
             loadFiles();
         }
 
-        function formatBytes(bytes, decimals = 2) {
-            if (bytes === 0) return '0 Bytes';
-            const k = 1024;
-            const dm = decimals < 0 ? 0 : decimals;
-            const sizes = ['Bytes', 'KB', 'MB', 'GB', 'TB'];
-            const i = Math.floor(Math.log(bytes) / Math.log(k));
-            return parseFloat((bytes / Math.pow(k, i)).toFixed(dm)) + ' ' + sizes[i];
+        function logout() {
+            localStorage.removeItem('authToken');
+            token = null;
+            authModal.classList.remove('hidden');
+            tokenInput.value = '';
+            tokenInput.focus();
         }
 
-        function getFileIconSVG() {
-            return `<svg class="icon-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M13 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"></path>
-                <polyline points="13 2 13 9 20 9"></polyline>
-            </svg>`;
+        function closePreview() {
+            document.getElementById('previewContainer').classList.add('hidden');
+            document.getElementById('bgLogo').classList.remove('hidden');
+            currentPreviewFile = null;
+        }
+
+        async function savePreview() {
+            if (!currentPreviewFile) return;
+            try {
+                loader.style.display = 'block';
+                const newContent = document.getElementById('previewContent').value;
+                const formData = new FormData();
+                formData.append('file', new File([newContent], currentPreviewFile.name, { type: "text/plain" }));
+                
+                const res = await fetch('/api/files', {
+                    method: 'POST',
+                    headers: { 'Authorization': 'Bearer ' + token },
+                    body: formData
+                });
+                
+                if (res.ok) {
+                    alert('SAVED SUCCESSFULLY');
+                    loadFiles();
+                } else {
+                    const text = await res.text();
+                    alert('FAILED TO SAVE: ' + text);
+                }
+            } catch (err) {
+                console.error('Save error', err);
+                alert('ERROR: CANNOT SAVE FILE.');
+            } finally {
+                loader.style.display = 'none';
+            }
+        }
+
+        function formatBytes(bytes, decimals = 0) {
+            if (bytes === 0) return '0B';
+            const k = 1024;
+            const dm = decimals < 0 ? 0 : decimals;
+            const sizes = ['B', 'KB', 'MB', 'GB', 'TB'];
+            const i = Math.floor(Math.log(bytes) / Math.log(k));
+            return parseFloat((bytes / Math.pow(k, i)).toFixed(dm)) + sizes[i];
         }
 
         async function loadFiles() {
             loader.style.display = 'block';
             fileList.innerHTML = '';
+            fileCountEl.textContent = 'LOADING...';
+
             try {
                 const res = await fetch('/api/files', {
                     headers: { 'Authorization': 'Bearer ' + token }
                 });
-                
+
                 if (res.status === 401) {
-                    localStorage.removeItem('authToken');
-                    token = null;
-                    authModal.classList.remove('hidden');
+                    logout();
                     return;
                 }
-                
+
                 if (!res.ok) throw new Error('Failed to fetch');
 
                 const data = await res.json();
-                
+
                 if (data === null || data.length === 0) {
-                    fileList.innerHTML = '<div style="grid-column: 1/-1; text-align: center; opacity: 0.5; padding: 40px;">No files found</div>';
+                    fileList.innerHTML = '<div style="text-align: center; opacity: 0.5; padding: 20px;">NO FILES</div>';
+                    fileCountEl.textContent = '0 FILES';
                 } else {
+                    fileCountEl.textContent = `${data.length} FILES`;
                     data.forEach(file => {
                         const el = document.createElement('div');
                         el.className = 'file-item';
+
                         el.innerHTML = `
-                            ${getFileIconSVG()}
+                            <div class="file-item-icon"></div>
                             <div class="file-name" title="${file.name}">${file.name}</div>
                             <div class="file-size">${formatBytes(file.size)}</div>
                         `;
-                        
+
                         el.onclick = (e) => {
                             document.querySelectorAll('.file-item').forEach(i => i.classList.remove('selected'));
                             el.classList.add('selected');
                         };
-                        
-                        el.ondblclick = () => {
-                            window.location.href = `/api/files/${encodeURIComponent(file.name)}?token=${encodeURIComponent(token)}`;
+
+                        el.ondblclick = async (e) => {
+                            e.stopPropagation();
+                            const ext = file.name.slice((file.name.lastIndexOf(".") - 1 >>> 0) + 2).toLowerCase();
+                            const textExtensions = ['txt', 'json', 'py', 'php', 'yaml', 'yml', 'md', 'csv', 'log', 'js', 'html', 'css', 'go', 'sh', 'env'];
+
+                            const fileUrl = `/api/files/${encodeURIComponent(file.name)}?token=${encodeURIComponent(token)}`;
+
+                            if (textExtensions.includes(ext) || ext === '') {
+                                try {
+                                    loader.style.display = 'block';
+                                    const res = await fetch(fileUrl);
+                                    if (!res.ok) throw new Error('Failed to fetch file');
+                                    const text = await res.text();
+
+                                    document.getElementById('previewTitle').textContent = `EDITING: ${file.name}`;
+                                    document.getElementById('previewContent').value = text;
+                                    document.getElementById('previewContainer').classList.remove('hidden');
+                                    document.getElementById('bgLogo').classList.add('hidden');
+                                    currentPreviewFile = file;
+                                } catch (err) {
+                                    console.error('Preview error', err);
+                                    alert('ERROR: CANNOT PREVIEW FILE.');
+                                    window.location.href = fileUrl; // fallback to download
+                                } finally {
+                                    loader.style.display = 'none';
+                                }
+                            } else {
+                                window.location.href = fileUrl;
+                            }
                         };
                         
+                        el.oncontextmenu = (e) => showContextMenu(e, file);
+
                         fileList.appendChild(el);
                     });
                 }
             } catch (err) {
                 console.error('Failed to load files', err);
-                if(token) alert('Failed to load files. Check console.');
+                if (token) alert('ERROR: FAILED TO LOAD FILES.');
+                fileCountEl.textContent = 'ERROR';
             } finally {
                 loader.style.display = 'none';
             }
@@ -370,7 +747,7 @@
             dropzone.classList.remove('dragover');
             const dt = e.dataTransfer;
             const files = dt.files;
-            
+
             if (files.length > 0) {
                 loader.style.display = 'block';
                 for (let i = 0; i < files.length; i++) {
@@ -384,7 +761,7 @@
         async function uploadFile(file) {
             const formData = new FormData();
             formData.append('file', file);
-            
+
             try {
                 const res = await fetch('/api/files', {
                     method: 'POST',
@@ -394,13 +771,47 @@
                 if (!res.ok) {
                     const text = await res.text();
                     console.error('Upload failed', text);
-                    alert('Upload failed: ' + text);
+                    alert('UPLOAD ERROR: ' + text);
                 }
             } catch (err) {
                 console.error('Upload failed', err);
-                alert('Upload failed: ' + err.message);
+                alert('UPLOAD ERROR: ' + err.message);
             }
         }
+
+        // Create new file on empty space double click
+        fileList.addEventListener('dblclick', async (e) => {
+            if (e.target === fileList) {
+                const fileName = prompt('NEW FILE NAME:', 'newfile.txt');
+                if (fileName) {
+                    try {
+                        loader.style.display = 'block';
+                        const formData = new FormData();
+                        // Create an empty file
+                        formData.append('file', new File([""], fileName, { type: "text/plain" }));
+                        
+                        const res = await fetch('/api/files', {
+                            method: 'POST',
+                            headers: { 'Authorization': 'Bearer ' + token },
+                            body: formData
+                        });
+                        
+                        if (res.ok) {
+                            loadFiles();
+                        } else {
+                            const text = await res.text();
+                            alert('FAILED TO CREATE FILE: ' + text);
+                        }
+                    } catch (err) {
+                        console.error('Create file error', err);
+                        alert('ERROR: CANNOT CREATE FILE.');
+                    } finally {
+                        loader.style.display = 'none';
+                    }
+                }
+            }
+        });
     </script>
 </body>
+
 </html>

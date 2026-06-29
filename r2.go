@@ -4,7 +4,9 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"net/url"
 	"os"
+	"time"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/config"
@@ -51,8 +53,9 @@ func NewR2Client(ctx context.Context) (*R2Client, error) {
 }
 
 type FileInfo struct {
-	Name string `json:"name"`
-	Size int64  `json:"size"`
+	Name         string    `json:"name"`
+	Size         int64     `json:"size"`
+	LastModified time.Time `json:"last_modified"`
 }
 
 func (r *R2Client) ListFiles(ctx context.Context) ([]FileInfo, error) {
@@ -68,8 +71,9 @@ func (r *R2Client) ListFiles(ctx context.Context) ([]FileInfo, error) {
 		}
 		for _, obj := range page.Contents {
 			files = append(files, FileInfo{
-				Name: *obj.Key,
-				Size: *obj.Size,
+				Name:         *obj.Key,
+				Size:         *obj.Size,
+				LastModified: *obj.LastModified,
 			})
 		}
 	}
@@ -102,4 +106,17 @@ func (r *R2Client) DeleteFile(ctx context.Context, key string) error {
 		Key:    &key,
 	})
 	return err
+}
+
+func (r *R2Client) RenameFile(ctx context.Context, srcKey, destKey string) error {
+	source := url.PathEscape(r.BucketName + "/" + srcKey)
+	_, err := r.Client.CopyObject(ctx, &s3.CopyObjectInput{
+		Bucket:     &r.BucketName,
+		Key:        &destKey,
+		CopySource: aws.String(source),
+	})
+	if err != nil {
+		return err
+	}
+	return r.DeleteFile(ctx, srcKey)
 }

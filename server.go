@@ -132,6 +132,24 @@ func (s *Server) handleFile(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	if r.Method == http.MethodPatch {
+		action := r.URL.Query().Get("action")
+		if action == "rename" {
+			newName := r.URL.Query().Get("newname")
+			if newName == "" {
+				http.Error(w, "newname is required", http.StatusBadRequest)
+				return
+			}
+			err := s.R2Client.RenameFile(r.Context(), filename, newName)
+			if err != nil {
+				http.Error(w, err.Error(), http.StatusInternalServerError)
+				return
+			}
+			w.WriteHeader(http.StatusOK)
+			return
+		}
+	}
+
 	http.Error(w, "Method Not Allowed", http.StatusMethodNotAllowed)
 }
 
