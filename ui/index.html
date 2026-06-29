@@ -260,8 +260,8 @@
             font-weight: bold;
         }
 
-        /* Auth Modal */
-        #authModal {
+        /* Modals */
+        .modal-overlay {
             position: fixed;
             top: 0;
             left: 0;
@@ -423,6 +423,38 @@
             background: var(--hover-bg);
             color: var(--accent-color);
         }
+
+        /* Toast Notification */
+        .toast-container {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            z-index: 2000;
+        }
+
+        .toast {
+            background: var(--panel-bg);
+            border: 1px solid var(--accent-color);
+            color: var(--accent-color);
+            padding: 10px 15px;
+            font-size: 12px;
+            font-family: 'Courier New', Courier, monospace;
+            box-shadow: 0 0 10px rgba(113, 207, 201, 0.3);
+            backdrop-filter: blur(4px);
+            opacity: 0;
+            transform: translateY(20px);
+            transition: all 0.3s ease;
+            max-width: 300px;
+            word-wrap: break-word;
+        }
+
+        .toast.show {
+            opacity: 1;
+            transform: translateY(0);
+        }
     </style>
 </head>
 
@@ -437,13 +469,27 @@
         <div class="context-menu-item" onclick="handleMenuAction('metadata')">METADATA</div>
     </div>
 
-    <div id="authModal" class="hidden">
+    <div id="toastContainer" class="toast-container"></div>
+
+    <div id="authModal" class="modal-overlay hidden">
         <div class="modal-content">
             <h2>AUTHENTICATION</h2>
             <p>ENTER ACCESS TOKEN</p>
             <input type="password" id="tokenInput" placeholder="> _" autocomplete="off"
                 onkeypress="if(event.key === 'Enter') saveToken()">
             <button onclick="saveToken()">INITIALIZE</button>
+        </div>
+    </div>
+
+    <div id="dialogModal" class="modal-overlay hidden">
+        <div class="modal-content">
+            <h2 id="dialogTitle">DIALOG</h2>
+            <p id="dialogMessage" style="margin-bottom: 10px;"></p>
+            <input type="text" id="dialogInput" class="hidden" autocomplete="off">
+            <div style="display: flex; gap: 10px; margin-top: 20px;">
+                <button id="dialogCancel" style="background: transparent; border: 1px solid var(--accent-color); color: var(--accent-color);">CANCEL</button>
+                <button id="dialogConfirm">OK</button>
+            </div>
         </div>
     </div>
 
@@ -516,6 +562,88 @@
             document.getElementById('contextMenu').style.display = 'none';
         });
 
+        function showToast(message) {
+            const container = document.getElementById('toastContainer');
+            const toast = document.createElement('div');
+            toast.className = 'toast';
+            toast.innerText = message;
+            container.appendChild(toast);
+            
+            // Trigger reflow
+            void toast.offsetWidth;
+            
+            toast.classList.add('show');
+            
+            setTimeout(() => {
+                toast.classList.remove('show');
+                setTimeout(() => {
+                    toast.remove();
+                }, 300); // Wait for transition to finish
+            }, 3000);
+        }
+
+        function openDialog(title, message, isPrompt, defaultValue = '') {
+            return new Promise((resolve) => {
+                const modal = document.getElementById('dialogModal');
+                const titleEl = document.getElementById('dialogTitle');
+                const messageEl = document.getElementById('dialogMessage');
+                const inputEl = document.getElementById('dialogInput');
+                const btnCancel = document.getElementById('dialogCancel');
+                const btnConfirm = document.getElementById('dialogConfirm');
+
+                titleEl.innerText = title;
+                messageEl.innerText = message;
+                
+                if (isPrompt) {
+                    inputEl.classList.remove('hidden');
+                    inputEl.value = defaultValue;
+                } else {
+                    inputEl.classList.add('hidden');
+                }
+
+                modal.classList.remove('hidden');
+                
+                if (isPrompt) {
+                    inputEl.focus();
+                    inputEl.select();
+                }
+
+                const cleanup = () => {
+                    modal.classList.add('hidden');
+                    btnCancel.onclick = null;
+                    btnConfirm.onclick = null;
+                    inputEl.onkeypress = null;
+                };
+
+                btnCancel.onclick = () => {
+                    cleanup();
+                    resolve(isPrompt ? null : false);
+                };
+
+                btnConfirm.onclick = () => {
+                    cleanup();
+                    resolve(isPrompt ? inputEl.value : true);
+                };
+
+                if (isPrompt) {
+                    inputEl.onkeypress = (e) => {
+                        if (e.key === 'Enter') {
+                            cleanup();
+                            resolve(inputEl.value);
+                        }
+                    };
+                }
+            });
+        }
+
+        function showPrompt(message, defaultValue) {
+            return openDialog('INPUT REQUIRED', message, true, defaultValue);
+        }
+
+        function showConfirm(message) {
+            return openDialog('CONFIRM', message, false);
+        }
+
         function showContextMenu(e, file) {
             e.preventDefault();
             contextFile = file;
@@ -532,7 +660,7 @@
             const file = contextFile;
 
             if (action === 'delete') {
-                if (confirm(`DELETE ${file.name}?`)) {
+                if (await showConfirm(`DELETE ${file.name}?`)) {
                     try {
                         loader.style.display = 'block';
                         const res = await fetch(`/api/files/${encodeURIComponent(file.name)}`, {
@@ -540,15 +668,15 @@
                             headers: { 'Authorization': 'Bearer ' + token }
                         });
                         if (res.ok) loadFiles();
-                        else alert('DELETE FAILED');
+                        else showToast('DELETE FAILED');
                     } catch (e) {
-                        alert('DELETE FAILED');
+                        showToast('DELETE FAILED');
                     } finally {
                         loader.style.display = 'none';
                     }
                 }
             } else if (action === 'rename') {
-                const newName = prompt('NEW NAME:', file.name);
+                const newName = await showPrompt('NEW NAME:', file.name);
                 if (newName && newName !== file.name) {
                     try {
                         loader.style.display = 'block';
@@ -557,16 +685,16 @@
                             headers: { 'Authorization': 'Bearer ' + token }
                         });
                         if (res.ok) loadFiles();
-                        else alert('RENAME FAILED');
+                        else showToast('RENAME FAILED');
                     } catch (e) {
-                        alert('RENAME FAILED');
+                        showToast('RENAME FAILED');
                     } finally {
                         loader.style.display = 'none';
                     }
                 }
             } else if (action === 'metadata') {
                 const dateStr = file.last_modified ? new Date(file.last_modified).toLocaleString() : 'N/A';
-                alert(`FILE: ${file.name}\nSIZE: ${formatBytes(file.size)} (${file.size} B)\nMODIFIED: ${dateStr}`);
+                showToast(`FILE: ${file.name}\nSIZE: ${formatBytes(file.size)} (${file.size} B)\nMODIFIED: ${dateStr}`);
             }
         }
 
@@ -615,15 +743,15 @@
                 });
 
                 if (res.ok) {
-                    alert('SAVED SUCCESSFULLY');
+                    showToast('SAVED SUCCESSFULLY');
                     loadFiles();
                 } else {
                     const text = await res.text();
-                    alert('FAILED TO SAVE: ' + text);
+                    showToast('FAILED TO SAVE: ' + text);
                 }
             } catch (err) {
                 console.error('Save error', err);
-                alert('ERROR: CANNOT SAVE FILE.');
+                showToast('ERROR: CANNOT SAVE FILE.');
             } finally {
                 loader.style.display = 'none';
             }
@@ -698,7 +826,7 @@
                                     currentPreviewFile = file;
                                 } catch (err) {
                                     console.error('Preview error', err);
-                                    alert('ERROR: CANNOT PREVIEW FILE.');
+                                    showToast('ERROR: CANNOT PREVIEW FILE.');
                                     window.location.href = fileUrl; // fallback to download
                                 } finally {
                                     loader.style.display = 'none';
@@ -715,7 +843,7 @@
                 }
             } catch (err) {
                 console.error('Failed to load files', err);
-                if (token) alert('ERROR: FAILED TO LOAD FILES.');
+                if (token) showToast('ERROR: FAILED TO LOAD FILES.');
                 fileCountEl.textContent = 'ERROR';
             } finally {
                 loader.style.display = 'none';
@@ -777,18 +905,18 @@
                 if (!res.ok) {
                     const text = await res.text();
                     console.error('Upload failed', text);
-                    alert('UPLOAD ERROR: ' + text);
+                    showToast('UPLOAD ERROR: ' + text);
                 }
             } catch (err) {
                 console.error('Upload failed', err);
-                alert('UPLOAD ERROR: ' + err.message);
+                showToast('UPLOAD ERROR: ' + err.message);
             }
         }
 
         // Create new file on empty space double click
         fileList.addEventListener('dblclick', async (e) => {
             if (e.target === fileList) {
-                const fileName = prompt('NEW FILE NAME:', 'newfile.txt');
+                const fileName = await showPrompt('NEW FILE NAME:', 'newfile.txt');
                 if (fileName) {
                     try {
                         loader.style.display = 'block';
@@ -807,11 +935,11 @@
                             loadFiles();
                         } else {
                             const text = await res.text();
-                            alert('FAILED TO CREATE FILE: ' + text);
+                            showToast('FAILED TO CREATE FILE: ' + text);
                         }
                     } catch (err) {
                         console.error('Create file error', err);
-                        alert('ERROR: CANNOT CREATE FILE.');
+                        showToast('ERROR: CANNOT CREATE FILE.');
                     } finally {
                         loader.style.display = 'none';
                     }
