@@ -1,0 +1,18 @@
+# Binaries
+drop
+drop.exe
+drop-windows-amd64.exe
+drop-darwin-amd64
+drop-darwin-arm64
+drop-linux-amd64
+
+# Environment variables
+.env
+
+# Go workspace file
+go.work
+go.work.sum
+
+# OS specific files
+.DS_Store
+Thumbs.db
